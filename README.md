@@ -1,8 +1,14 @@
 # TeamSync Polyglot
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Online-success?style=for-the-badge&logo=vercel)](https://teamsync-polyglot.manus.space)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-blue?style=for-the-badge&logo=github)](https://github.com/cailucky777/teamsync-polyglot)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
 **Privacy-First Multilingual Meeting Assistant**
 
 Break language barriers in global teams with real-time translation, AI-powered summarization, and OCR image processing. Designed with privacy in mind and ready for on-device inference.
+
+> 🌐 **[Try Live Demo](https://teamsync-polyglot.manus.space)** - No installation required!
 
 ---
 
@@ -37,6 +43,21 @@ Break language barriers in global teams with real-time translation, AI-powered s
 - **Future-Ready:** Designed for easy migration to TranslateGemma 4B for on-device inference
 - Adapter pattern enables seamless model switching
 - No vendor lock-in
+
+---
+
+## 🎯 Live Demo
+
+**Try it now without installation:**
+
+🔗 **https://teamsync-polyglot.manus.space**
+
+### Demo Features:
+- ✅ Create meeting notes in any language
+- ✅ Upload whiteboard photos for OCR
+- ✅ Translate to 10+ languages instantly
+- ✅ AI-powered action item extraction
+- ✅ Export summaries as Markdown
 
 ---
 
