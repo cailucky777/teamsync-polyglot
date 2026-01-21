@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertMeeting, InsertTranslation, InsertUser, meetings, translations, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,62 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Meeting operations
+export async function createMeeting(meeting: InsertMeeting) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(meetings).values(meeting);
+  return result[0].insertId;
+}
+
+export async function getMeetingById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(meetings).where(eq(meetings.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserMeetings(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(meetings).where(eq(meetings.userId, userId)).orderBy(desc(meetings.createdAt));
+}
+
+export async function deleteMeeting(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(meetings).where(eq(meetings.id, id));
+}
+
+// Translation operations
+export async function createTranslation(translation: InsertTranslation) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(translations).values(translation);
+  return result[0].insertId;
+}
+
+export async function getTranslation(meetingId: number, targetLanguage: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db
+    .select()
+    .from(translations)
+    .where(and(eq(translations.meetingId, meetingId), eq(translations.targetLanguage, targetLanguage)))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getMeetingTranslations(meetingId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(translations).where(eq(translations.meetingId, meetingId)).orderBy(desc(translations.createdAt));
+}

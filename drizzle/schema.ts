@@ -25,4 +25,36 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Meetings table stores original meeting notes and metadata
+ */
+export const meetings = mysqlTable("meetings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  originalContent: text("originalContent").notNull(),
+  detectedLanguage: varchar("detectedLanguage", { length: 10 }),
+  imageUrl: text("imageUrl"),
+  imageKey: text("imageKey"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Meeting = typeof meetings.$inferSelect;
+export type InsertMeeting = typeof meetings.$inferInsert;
+
+/**
+ * Translations table caches translation results for performance
+ */
+export const translations = mysqlTable("translations", {
+  id: int("id").autoincrement().primaryKey(),
+  meetingId: int("meetingId").notNull().references(() => meetings.id, { onDelete: "cascade" }),
+  targetLanguage: varchar("targetLanguage", { length: 10 }).notNull(),
+  translatedContent: text("translatedContent").notNull(),
+  summary: text("summary"),
+  actionItems: text("actionItems"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Translation = typeof translations.$inferSelect;
+export type InsertTranslation = typeof translations.$inferInsert;
