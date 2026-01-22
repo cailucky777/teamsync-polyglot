@@ -49,3 +49,12 @@
 - [x] Document TranslateGemma 4B migration path in README
 - [x] Add API usage examples
 - [x] Document supported languages and formats
+
+## Migration to Local TranslateGemma
+
+- [x] Research TranslateGemma 4B model capabilities and requirements
+- [x] Write technical migration architecture document
+- [x] Create Ollama integration adapter code
+- [x] Implement local model fallback logic
+- [x] Document deployment procedures
+- [x] Create performance benchmarks (API vs local)

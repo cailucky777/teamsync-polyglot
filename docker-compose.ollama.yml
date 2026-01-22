@@ -1,0 +1,192 @@
+# Docker Compose Configuration for TeamSync Polyglot with Local TranslateGemma
+#
+# This configuration deploys the application with Ollama + TranslateGemma 4B
+# for offline-first translation capabilities.
+#
+# Prerequisites:
+# - Docker Engine 20.10+ with Compose V2
+# - NVIDIA Docker runtime (for GPU acceleration)
+# - 16GB+ RAM available
+# - 20GB+ disk space
+#
+# Quick Start:
+#   1. Copy this file: cp docker-compose.ollama.yml docker-compose.yml
+#   2. Start services: docker-compose up -d
+#   3. Pull model: docker exec ollama ollama pull translategemma:4b
+#   4. Check logs: docker-compose logs -f app
+#
+# GPU Support:
+#   Uncomment the 'deploy' section under 'ollama' service to enable GPU acceleration
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Ollama Service - Local LLM Runtime
+  # ============================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: teamsync-ollama
+    restart: unless-stopped
+    
+    # Port Configuration
+    ports:
+      - "11434:11434"  # Ollama API endpoint
+    
+    # Volume Mounts
+    volumes:
+      - ollama_models:/root/.ollama  # Persistent model storage
+    
+    # Environment Variables
+    environment:
+      - OLLAMA_HOST=0.0.0.0  # Listen on all interfaces
+      - OLLAMA_ORIGINS=*     # Allow CORS from any origin
+    
+    # Resource Limits (adjust based on your hardware)
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 16G
+        reservations:
+          cpus: '2'
+          memory: 8G
+    
+    # GPU Support (uncomment for NVIDIA GPU acceleration)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    
+    # Health Check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ============================================================================
+  # Application Service - TeamSync Polyglot
+  # ============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    
+    container_name: teamsync-polyglot
+    restart: unless-stopped
+    
+    # Port Configuration
+    ports:
+      - "3000:3000"  # Application HTTP port
+    
+    # Environment Variables
+    environment:
+      # Translation Configuration
+      - TRANSLATION_MODE=local
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=translategemma:4b
+      - ENABLE_CLOUD_FALLBACK=true
+      
+      # Google Gemini API (for fallback)
+      - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
+      
+      # Database Configuration
+      - DATABASE_URL=${DATABASE_URL}
+      
+      # Authentication
+      - JWT_SECRET=${JWT_SECRET}
+      - OAUTH_SERVER_URL=${OAUTH_SERVER_URL}
+      - VITE_OAUTH_PORTAL_URL=${VITE_OAUTH_PORTAL_URL}
+      
+      # Application Settings
+      - NODE_ENV=production
+      - PORT=3000
+    
+    # Volume Mounts
+    volumes:
+      - app_uploads:/app/uploads  # Persistent file uploads
+      - app_logs:/app/.manus-logs  # Application logs
+    
+    # Service Dependencies
+    depends_on:
+      ollama:
+        condition: service_healthy
+    
+    # Resource Limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    
+    # Health Check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ============================================================================
+  # Model Initialization Service (runs once to pull TranslateGemma)
+  # ============================================================================
+  model-init:
+    image: ollama/ollama:latest
+    container_name: teamsync-model-init
+    restart: "no"  # Run once only
+    
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      echo 'Waiting for Ollama service to be ready...';
+      sleep 10;
+      echo 'Pulling TranslateGemma 4B model (this may take several minutes)...';
+      ollama pull translategemma:4b;
+      echo 'Model download complete!';
+      ollama list;
+      "
+    
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+# ============================================================================
+# Volume Definitions
+# ============================================================================
+volumes:
+  # Ollama model storage (approximately 2.5GB for TranslateGemma 4B)
+  ollama_models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/ollama
+  
+  # Application file uploads
+  app_uploads:
+    driver: local
+  
+  # Application logs
+  app_logs:
+    driver: local
+
+# ============================================================================
+# Network Configuration
+# ============================================================================
+networks:
+  default:
+    name: teamsync-network
+    driver: bridge
